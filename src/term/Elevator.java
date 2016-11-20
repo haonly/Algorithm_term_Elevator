@@ -9,6 +9,7 @@ public class Elevator extends Thread{
 	
 	public Elevator()
 	{
+		dest=new int[10];
 		for(int i=0;i<10;i++)
 			dest[i]=0;
 	}
