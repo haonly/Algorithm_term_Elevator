@@ -45,7 +45,7 @@ public class BackgroundUI {
 
 	public BackgroundUI() {
 
-		// ì „ì²´ í”„ë ˆì„ ë“±ë¡
+		// ÀüÃ¼ ÇÁ·¹ÀÓ µî·Ï
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLayout(null);
@@ -172,7 +172,7 @@ public class BackgroundUI {
 				for (int i = 0; i < 10; i++) {
 					g.drawImage(floor.getImage(), 20, (i + 1) * 90, 300, 15, null);
 				}
-				// ë²„íŠ¼ ìœ„ì¹˜ ì§€ì •
+				// ¹öÆ° À§Ä¡ ÁöÁ¤
 				for (int i = 0; i < 10; i++) {
 					for (int j = 0; j < 10; j++) {
 						fbutton = new ImageIcon("img/f" + (j + 1) + ".png");
