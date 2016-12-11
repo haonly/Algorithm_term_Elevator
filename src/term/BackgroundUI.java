@@ -1,186 +1,284 @@
-import java.awt.*;
-import java.util.Timer;
-import java.util.TimerTask;
+package ele;
 
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.border.BevelBorder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.TreeSet;
+import java.util.Comparator;
+
 import javax.swing.*;
 
-public class BackgroundUI {
+public class Elevator extends Thread {
 
-   private JPanel background_panel, elevator1_panel,elevator2_panel,elevator3_panel, floor_panel, ann_panel;
-   private JFrame frame;
-   private JButton[][] floor_button;
-   private ImageIcon bg = null, elevator = null, floor = null, fbutton = null,show_floor=null, planet = null;
-   static int elevator_x=177;
-   static int elevator_y;
-   Timer elevator_time=new Timer();
+   static int DOORS_TIME = 10; // Milliseconds
+   static int TRAVELING_TIME = 15; // Milliseconds
+   private int id;
+   Boolean[] UpDest;
+   Boolean[] DownDest;
+   int ele_direction = 0;
+   private TreeSet<Integer> floor_up = new TreeSet<Integer>();
+   private TreeSet<Integer> down_temp = new TreeSet<Integer>();
+   private ArrayList<Integer> floor_list = new ArrayList<Integer>();
 
-   public static int count = 0;
+   NavigableSet<Integer> floor_down;
+   private int direction = 0; // -1:down 0: stop 1:up
+   private int currF = 1;
+   private final int cntF = 10;
+   private final int capacity = 10;// 수용인원 10명으로 가정.
+   private int[] location = { 840, 730, 640, 550, 460, 370, 280, 180, 100, 0 };
+   boolean isMoving = false;
 
-   public BackgroundUI() {
+   JLabel bg;
+   JLabel ele;
+   ImageIcon elevator;
 
-      // 전체 프레임 등록
-      frame = new JFrame();
-      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-      frame.setLayout(null);
+   ElevatorMove move;
+   List<Person> persons;
 
-      // 배경 패널 생성
-      bg = new ImageIcon("img/glass2.png");
-      background_panel = new JPanel() {
-         public void paintComponent(Graphics g) {
-            g.drawImage(bg.getImage(), 0, 0, 1400, 1000, null);
-            
-            for(int i=1;i<=10;i++){
-                show_floor = new ImageIcon("img/floor"+(11-i)+".png");
-                 g.drawImage(show_floor.getImage(),40,-50+(i*90),60,60, null);               
-            }
-            for(int i = 1; i <= 10; i++){
-            	planet = new ImageIcon("img/stair" +(11-i)+".png");
-            	g.drawImage(planet.getImage(), 940, -60+(i*90), 50,50,null);
-            }
-         }
-      };
-
-      // 엘레베이터1 패널 생성
+   public Elevator(int id, JLabel bg) {
       elevator = new ImageIcon("img/elevator0.png");
-      elevator1_panel = new JPanel() {
-         public void paintComponent(Graphics g) {
-            g.drawImage(elevator.getImage(),35,840, 70, 85, null);
-         }
-      };
-      
-      //2
-      elevator2_panel = new JPanel() {
-         public void paintComponent(Graphics g) {
-            g.drawImage(elevator.getImage(),35,840,70, 85, null);
-         }
-      };
-      
-      //3
-      elevator3_panel = new JPanel() {
-         public void paintComponent(Graphics g) {
-            g.drawImage(elevator.getImage(),35,840,70, 85, null);
-         }
-      };
-      
-      
+      this.bg = bg;
+      this.ele = new JLabel(elevator);
+      ele.setLayout(null);
+      ele.setSize(70, 100);
+      ele.setOpaque(false);
+      ele.setLocation(40 + 170 * id, 840);
+      bg.add(ele);
 
-      //floor 패널 생성
-      floor = new ImageIcon("img/stick.png");
-      floor_button = new JButton[10][10];
-      floor_panel = new JPanel() {
-         public void paintComponent(Graphics g) {
- 
-            for (int i = 0; i < 10; i++) {
-               g.drawImage(floor.getImage(), 20, (i + 1) * 90, 300, 15, null);
-            }
-            //버튼 위치 지정
-            for (int i = 0; i < 10; i++) {
-               for (int j = 0; j < 10; j++) {
-                  fbutton = new ImageIcon("img/f"+(j+1)+".png");
-                  Image tempimg = fbutton.getImage();
-                  tempimg = tempimg.getScaledInstance(30, 30, tempimg.SCALE_DEFAULT);
-                  fbutton = new ImageIcon(tempimg);
-                  floor_button[i][j] = new JButton(fbutton);
-                  floor_button[i][j].setBackground(Color.black);
-                  if (j > 4)
-                     floor_button[i][j].setBounds(350+((j-5)*30),60+(i*90), 30, 30);
-                  else
-                     floor_button[i][j].setBounds(350+(j*30), 30+(i * 90), 30, 30);
-                  
-                  floor_panel.add(floor_button[i][j]);
-               }
-            }
-         }
+      UpDest = new Boolean[10];
+      DownDest = new Boolean[10];
+      move = new ElevatorMove(ele, this);
 
-      };
-      
-      JTextField announce = new JTextField(10);
-      ann_panel = new JPanel(){
-    	  public void paintComponent(Graphics g){
-    		  announce.setBounds(10, 30, 10,10);
-    		  ann_panel.add(announce);
-    	  }
-      }; 
-        
-      // 보더임 지우자
-      elevator1_panel.setBorder(new BevelBorder(BevelBorder.RAISED));
-      elevator1_panel.setLayout(new BorderLayout());
-      
-      elevator2_panel.setBorder(new BevelBorder(BevelBorder.RAISED));
-      elevator2_panel.setLayout(new BorderLayout());
-      
-      elevator3_panel.setBorder(new BevelBorder(BevelBorder.RAISED));
-      elevator3_panel.setLayout(new BorderLayout());
+      for (int i = 0; i < cntF; i++) {
+         UpDest[i] = false;
+         DownDest[i] = false;
+      }
 
-      // 여기도 보더임 지우자
-      floor_panel.setBorder(new BevelBorder(BevelBorder.RAISED));
-      floor_panel.setLayout(new BorderLayout());
-      
-      ann_panel.setBorder(new BevelBorder(BevelBorder.RAISED));
-      ann_panel.setLayout(new BorderLayout());
-
-      // 패널들의 위치 조정
-      background_panel.setBounds(0, 0, 1400, 1000);
-      background_panel.setVisible(true);
-
-      elevator1_panel.setBounds(177, 0, 145, 1000);
-      elevator1_panel.setVisible(true);
-      
-      elevator2_panel.setBounds(350, 0, 145, 1000);
-      elevator2_panel.setVisible(true);
-      
-      elevator3_panel.setBounds(520, 0, 145, 1000);
-      elevator3_panel.setVisible(true);
-
-      floor_panel.setBounds(680, 0, 520, 1000);
-      floor_panel.setVisible(true);
-      
-      ann_panel.setBounds(1200, 0, 300, 1000);
-      ann_panel.setVisible(true);
-
-      frame.add(elevator1_panel);
-      frame.add(elevator2_panel);
-      frame.add(elevator3_panel);
-      frame.add(floor_panel);
-      frame.add(background_panel);
-
-      frame.setSize(1400, 1000);
-      frame.setVisible(true);
-      
-      
-      TimerTask elevator_task=new TimerTask(){
-         public void run() {
-            if(count<162){
-                elevator_y = elevator_y -5;
-                  elevator1_panel.setLocation(elevator_x, elevator_y);
-                  count++;
-                  frame.repaint();
-            }
-            else if(count>=100&&count<200){
-               elevator_y = elevator_y +5;
-               elevator1_panel.setLocation(elevator_x, elevator_y);
-                  count++;
-                  frame.repaint();
-            }
-            else if(count>=195){
-               elevator_time.cancel();
-            }
-         }
-         };
-            
-         elevator_time.schedule(elevator_task,0,1);
-         
-           
+      this.id = id;
+      direction = 1;
+      currF = 1;
+      persons = new ArrayList<>();
    }
 
-   public static void main(String[] args) {
+   public void add_floor(int curr, int dest, int direction) {
 
-      BackgroundUI bgui = new BackgroundUI();
+      if (currF < curr) {// 엘레베이터가 올라감
+         floor_up.add(curr);
+         if (direction == 1) {
+            floor_up.add(dest);
 
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(floor_up);
+
+         } else {
+            down_temp.add(dest);
+            floor_down = down_temp.descendingSet();
+
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(floor_up);
+            floor_list.addAll(floor_down);
+
+         }
+
+      }
+
+      else if (currF > curr) {// 엘레베이터가 내려감
+         down_temp.add(curr);
+         if (direction == 1) {
+            floor_up.add(dest);
+
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(down_temp);
+            floor_list.addAll(floor_up);
+
+         } else {
+            down_temp.add(dest);
+            floor_down = down_temp.descendingSet();
+
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(floor_down);
+
+         }
+
+      }
+
+      else {// 엘레베이터 안움직임
+         if (direction == 1) {
+            floor_up.add(curr);
+            floor_up.add(dest);
+
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(floor_up);
+
+         } else {
+            down_temp.add(curr);
+            down_temp.add(dest);
+            
+            floor_down = down_temp.descendingSet();
+
+            floor_list.removeAll(floor_list);
+            floor_list.addAll(floor_down);
+
+         }
+
+      }
+
+      System.out.println("elevator " + id + ": ");
+      for (int i = 0; i < floor_list.size(); i++) {
+         System.out.print(floor_list.get(i)+" ");
+      }
+
+      System.out.print("\n");
+
+   }
+
+   @Override
+   public void run() {
+      // TODO Auto-generated method stub
+      int t = 0;
+      int destiny = 0;
+      while (true) {
+         
+         if(floor_list.size()>0)
+            destiny=floor_list.get(0);
+
+         if (floor_list.size() == 0)
+            isMoving = false;
+         else {
+            t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
+            if (t == 0) {// 멈춰있엉
+               ele_direction = 0;
+               try {
+                  sleep(1700);
+               } catch (InterruptedException e) {
+                  // TODO Auto-generated catch block
+                  e.printStackTrace();
+               }
+            }
+
+            else if (destiny > currF) {// 올라감
+
+               ele_direction = 1;
+
+               for (int x = 0; x <= t; x = x + 10) {
+                  try {
+                     sleep(20);
+                     ele.setLocation(40 + 170 * id, location[currF - 1] - x);
+                     if(floor_list.get(0)<destiny){//중간에 새로 들어옴
+                        destiny=floor_list.get(0);
+                        t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
+                     }
+                  } catch (InterruptedException e) {
+                     // TODO Auto-generated catch block
+                     e.printStackTrace();
+                  }
+               }
+               try {
+                  sleep(1700);
+                  currF = floor_list.get(0);
+               } catch (InterruptedException e) {
+                  // TODO Auto-generated catch block
+                  e.printStackTrace();
+               }
+            }
+
+            else {// 내려감
+               for (int x = 0; x <= t; x = x + 10) {
+                  ele_direction = -1;
+
+                  try {
+                     sleep(20);
+                     ele.setLocation(40 + 170 * id, location[currF - 1] + x);
+                     
+                     if(floor_list.get(0)>destiny){//중간에 새로 들어옴
+                        destiny=floor_list.get(0);
+                        t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
+                     }
+                  } catch (InterruptedException e) {
+                     // TODO Auto-generated catch block
+                     e.printStackTrace();
+                  }
+               }
+
+               try {
+                  sleep(1700);
+               } catch (InterruptedException e) {
+                  // TODO Auto-generated catch block
+                  e.printStackTrace();
+               }
+            }
+            floor_list.remove(0);
+
+         }
+      }
+   }
+
+   public long getId() {
+      return id;
+   }
+
+   public int getCapacity() {
+      return capacity;
+   }
+
+   public List getPerson() {
+      return persons;
+   }
+
+   public void setUpDest(int upDestFloor) {
+      UpDest[upDestFloor] = true;
+   }
+
+   public void setDownDest(int downDestFloor) {
+      DownDest[downDestFloor] = true;
+   }
+
+   public int getDirection() {
+      return direction;
+   }
+
+   public void setDirection(int direction) {
+      this.direction = direction;
+   }
+
+   public int getCurrF() {
+      return currF;
+   }
+
+   public void setCurrF(int currF) {
+      this.currF = currF;
+   }
+
+   public int getPersons() {
+      return persons.size();
+   }
+
+   public int upDestCount(int personCurr) {
+      int cnt = 0;
+
+      for (int i = currF; i < personCurr; i++) {
+         if (UpDest[i].equals(true))
+            cnt += DOORS_TIME;
+
+         cnt += TRAVELING_TIME;
+      }
+      return cnt;
+   }
+
+   public int downDestCount(int personCurr) {
+      int cnt = 0;
+
+      for (int i = currF; i > personCurr; i--) {
+         if (DownDest[i].equals(true))
+            cnt += DOORS_TIME;
+
+         cnt += TRAVELING_TIME;
+      }
+      return cnt;
+   }
+
+   public void addPerson(Person p) {
+      persons.add(p);
    }
 
 }
