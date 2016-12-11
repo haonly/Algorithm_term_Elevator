@@ -1,10 +1,10 @@
-package ele;
+package elevator;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
-import java.util.Comparator;
+
 
 import javax.swing.*;
 
@@ -13,8 +13,6 @@ public class Elevator extends Thread {
    static int DOORS_TIME = 10; // Milliseconds
    static int TRAVELING_TIME = 15; // Milliseconds
    private int id;
-   Boolean[] UpDest;
-   Boolean[] DownDest;
    int ele_direction = 0;
    private TreeSet<Integer> floor_up = new TreeSet<Integer>();
    private TreeSet<Integer> down_temp = new TreeSet<Integer>();
@@ -31,8 +29,6 @@ public class Elevator extends Thread {
    JLabel bg;
    JLabel ele;
    ImageIcon elevator;
-
-   ElevatorMove move;
    List<Person> persons;
 
    public Elevator(int id, JLabel bg) {
@@ -44,15 +40,6 @@ public class Elevator extends Thread {
       ele.setOpaque(false);
       ele.setLocation(40 + 170 * id, 840);
       bg.add(ele);
-
-      UpDest = new Boolean[10];
-      DownDest = new Boolean[10];
-      move = new ElevatorMove(ele, this);
-
-      for (int i = 0; i < cntF; i++) {
-         UpDest[i] = false;
-         DownDest[i] = false;
-      }
 
       this.id = id;
       direction = 1;
@@ -67,17 +54,19 @@ public class Elevator extends Thread {
          if (direction == 1) {
             floor_up.add(dest);
 
-            floor_list.removeAll(floor_list);
             floor_list.addAll(floor_up);
 
+            floor_up.removeAll(floor_up);
          } else {
             down_temp.add(dest);
             floor_down = down_temp.descendingSet();
 
-            floor_list.removeAll(floor_list);
             floor_list.addAll(floor_up);
             floor_list.addAll(floor_down);
 
+            floor_down.removeAll(floor_down);
+            floor_up.removeAll(floor_up);
+            down_temp.removeAll(down_temp);
          }
 
       }
@@ -87,17 +76,19 @@ public class Elevator extends Thread {
          if (direction == 1) {
             floor_up.add(dest);
 
-            floor_list.removeAll(floor_list);
             floor_list.addAll(down_temp);
             floor_list.addAll(floor_up);
 
+            floor_up.removeAll(floor_up);
+            down_temp.removeAll(down_temp);
          } else {
             down_temp.add(dest);
             floor_down = down_temp.descendingSet();
 
-            floor_list.removeAll(floor_list);
             floor_list.addAll(floor_down);
 
+            floor_down.removeAll(floor_down);
+            down_temp.removeAll(down_temp);
          }
 
       }
@@ -107,25 +98,25 @@ public class Elevator extends Thread {
             floor_up.add(curr);
             floor_up.add(dest);
 
-            floor_list.removeAll(floor_list);
             floor_list.addAll(floor_up);
 
+            floor_up.removeAll(floor_up);
          } else {
             down_temp.add(curr);
             down_temp.add(dest);
-            
-            floor_down = down_temp.descendingSet();
 
-            floor_list.removeAll(floor_list);
+            floor_down = down_temp.descendingSet();
             floor_list.addAll(floor_down);
 
+            floor_down.removeAll(floor_down);
+            down_temp.removeAll(down_temp);
          }
 
       }
 
       System.out.println("elevator " + id + ": ");
       for (int i = 0; i < floor_list.size(); i++) {
-         System.out.print(floor_list.get(i)+" ");
+         System.out.print(floor_list.get(i));
       }
 
       System.out.print("\n");
@@ -136,38 +127,31 @@ public class Elevator extends Thread {
    public void run() {
       // TODO Auto-generated method stub
       int t = 0;
-      int destiny = 0;
       while (true) {
-         
-         if(floor_list.size()>0)
-            destiny=floor_list.get(0);
 
          if (floor_list.size() == 0)
             isMoving = false;
          else {
-            t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
+            t = Math.abs((location[floor_list.get(0) - 1]) - (location[currF - 1]));
             if (t == 0) {// 멈춰있엉
                ele_direction = 0;
                try {
                   sleep(1700);
+
                } catch (InterruptedException e) {
                   // TODO Auto-generated catch block
                   e.printStackTrace();
                }
             }
 
-            else if (destiny > currF) {// 올라감
+            else if (floor_list.get(0) > currF) {// 올라감
 
                ele_direction = 1;
 
                for (int x = 0; x <= t; x = x + 10) {
                   try {
-                     sleep(20);
+                     sleep(60);
                      ele.setLocation(40 + 170 * id, location[currF - 1] - x);
-                     if(floor_list.get(0)<destiny){//중간에 새로 들어옴
-                        destiny=floor_list.get(0);
-                        t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
-                     }
                   } catch (InterruptedException e) {
                      // TODO Auto-generated catch block
                      e.printStackTrace();
@@ -189,11 +173,6 @@ public class Elevator extends Thread {
                   try {
                      sleep(20);
                      ele.setLocation(40 + 170 * id, location[currF - 1] + x);
-                     
-                     if(floor_list.get(0)>destiny){//중간에 새로 들어옴
-                        destiny=floor_list.get(0);
-                        t = Math.abs((location[destiny - 1]) - (location[currF - 1]));
-                     }
                   } catch (InterruptedException e) {
                      // TODO Auto-generated catch block
                      e.printStackTrace();
@@ -202,6 +181,7 @@ public class Elevator extends Thread {
 
                try {
                   sleep(1700);
+                  currF = floor_list.get(0);
                } catch (InterruptedException e) {
                   // TODO Auto-generated catch block
                   e.printStackTrace();
@@ -225,14 +205,6 @@ public class Elevator extends Thread {
       return persons;
    }
 
-   public void setUpDest(int upDestFloor) {
-      UpDest[upDestFloor] = true;
-   }
-
-   public void setDownDest(int downDestFloor) {
-      DownDest[downDestFloor] = true;
-   }
-
    public int getDirection() {
       return direction;
    }
@@ -253,30 +225,35 @@ public class Elevator extends Thread {
       return persons.size();
    }
 
-   public int upDestCount(int personCurr) {
-      int cnt = 0;
-
-      for (int i = currF; i < personCurr; i++) {
-         if (UpDest[i].equals(true))
-            cnt += DOORS_TIME;
-
-         cnt += TRAVELING_TIME;
+   public int upCntFloor(int personCurr)
+   {
+      int cnt=0;
+      
+      for(int i=0;i<floor_list.size();i++)
+      {
+        if(floor_list.get(i)>personCurr)
+        {
+           cnt++;
+        }
       }
+      
       return cnt;
    }
 
-   public int downDestCount(int personCurr) {
-      int cnt = 0;
-
-      for (int i = currF; i > personCurr; i--) {
-         if (DownDest[i].equals(true))
-            cnt += DOORS_TIME;
-
-         cnt += TRAVELING_TIME;
+   public int downCntFloor(int personCurr)
+   {
+      int cnt=0;
+      
+      for(int i=0;i<floor_list.size();i++)
+      {
+        if(floor_list.get(i)<personCurr)
+        {
+           cnt++;
+        }
       }
+      
       return cnt;
    }
-
    public void addPerson(Person p) {
       persons.add(p);
    }
